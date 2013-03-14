@@ -30,26 +30,46 @@ $facebook = new Facebook(array(
   'fileUpload' => true
 ));
  
+echo "<h3>Facebook</h3>";
+print_r($facebook);
+echo "<br>";
 
 $user = $facebook->getUser();
 $access_token = $facebook->getAccessToken();
 
-echo "<h3>Access token</h3>";
+echo "<h3>Access token</h3><a href='https://developers.facebook.com/tools/access_token/' target='_blank'>https://developers.facebook.com/tools/access_token/</a><br>";
 var_dump($access_token);
+
+$my_url = "https://royalepromotions.ca/facebook/imageupload/index.php";
+
+if (isset($_REQUEST["code"]))
+{
+    header("Location: http://www.facebook.com/mmdevel/app_253204234752974");
+    exit;
+}
+
+$signed_request = $facebook->getSignedRequest();
+if (!isset($signed_request["user_id"]))
+    {
+	$params = array(
+	  'scope' => 'publish_stream',
+	  'redirect_uri' => $my_url
+	);
+
+	echo "<script type='text/javascript'>top.location.href = '" . $facebook->getLoginUrl($params) . "';</script>";
+	exit;
+}
+
+	
+//$signed_request = get_signed_request();
+echo "<h3>Signed Request</h3>";
+var_dump($signed_request);
 
 
 echo "<h3>user</h3>";
 print_r($user);
 
 if (!empty($user)) {
-
-	echo "<h3>Facebook</h3>";
-	print_r($facebook);
-	echo "<br>";
-	
-	$signed_request = get_signed_request();
-	echo "<h3>Signed Request</h3>";
-	var_dump($signed_request);
 	
 	//https://developers.facebook.com/tools/access_token/
 	//$access_token = 'AAADmSbR3084BAMTu9ZC3y8ZBQZAcVpkbLiNTOyaZAaSq84xsMmqJSSsOZAe5ouGhV7iyiBaFByJoiGvsudX590htp9ZCnnbLoCRpZBk8643HNWjk1N01g1i';
