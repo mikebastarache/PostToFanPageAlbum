@@ -2,72 +2,78 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-
 include_once "src/facebook.php";
 
-function get_signed_request()
-{
-    $signed_request = NULL;
 
-	if (isset($_REQUEST["signed_request"]))
-	{
-		list($encoded_sig, $payload) = explode(".", $_REQUEST["signed_request"], 2);
-		$sig                         = base64_decode(strtr($encoded_sig, "-_", "+/"));
-		$signed_request              = json_decode(base64_decode(strtr($payload, "-_", "+/"), TRUE), TRUE);
-	}
-	else
-	{
-		error();
-	}
-	
-    return $signed_request;
-}
+$app_id = "253204234752974";
+$app_secret = "9b12db97de75600be77e679e5d7ef7a6";
+$canvas_page = "https://royalepromotions.ca/facebook/imageupload/index.php";
+$album_id = '472992669421000'; // Get the first one. Shouldn't be empty!
 
 
 $facebook = new Facebook(array(
-  'appId'  => '253204234752974',
-  'secret' => '9b12db97de75600be77e679e5d7ef7a6',
+  'appId'  => $app_id,
+  'secret' => $app_secret,
   'fileUpload' => true
 ));
- 
-echo "<h3>Facebook</h3>";
-print_r($facebook);
-echo "<br>";
 
-$user = $facebook->getUser();
-$access_token = $facebook->getAccessToken();
 
-echo "<h3>Access token</h3><a href='https://developers.facebook.com/tools/access_token/' target='_blank'>https://developers.facebook.com/tools/access_token/</a><br>";
-var_dump($access_token);
 
-$my_url = "https://royalepromotions.ca/facebook/imageupload/index.php";
-
+/*---------- SEND BACK TO APP START ------------*/ 
 if (isset($_REQUEST["code"]))
 {
     header("Location: http://www.facebook.com/mmdevel/app_253204234752974");
     exit;
 }
+/*---------- SEND BACK TO APP END ------------*/ 
 
-$signed_request = $facebook->getSignedRequest();
-if (!isset($signed_request["user_id"]))
-    {
-	$params = array(
-	  'scope' => 'publish_stream',
-	  'redirect_uri' => $my_url
-	);
+/*---------- AUTHENTICATE APP START ------------*/ 
+$auth_url = "http://www.facebook.com/dialog/oauth?client_id=" 
+	. $app_id . "&redirect_uri=" . urlencode($canvas_page) .  "&scope=manage_pages";
 
-	echo "<script type='text/javascript'>top.location.href = '" . $facebook->getLoginUrl($params) . "';</script>";
+$signed_request = $_REQUEST["signed_request"];
+list($encoded_sig, $payload) = explode('.', $signed_request, 2); 
+$data = json_decode(base64_decode(strtr($payload, '-_', '+/')), true);
+
+if (empty($data["user_id"])) {
+	echo "<script type='text/javascript'>top.location.href = '" . $auth_url . "';</script>";
 	exit;
 }
+/*---------- AUTHENTICATE APP END ------------*/ 
 
-	
-//$signed_request = get_signed_request();
+
+
+
+
 echo "<h3>Signed Request</h3>";
 var_dump($signed_request);
 
 
+/*----------FACEBOOK OBJECT DISPLAY START ------------*/ 
+echo "<h3>Facebook</h3>";
+print_r($facebook);
+echo "<br>";
+/*----------FACEBOOK OBJECT DISPLAY END ------------*/ 
+
+
+
+
+/*---------- ACCESS TOKEN DISPLAY START ------------*/ 
+$access_token = $facebook->getAccessToken();
+
+echo "<h3>Access token</h3><a href='https://developers.facebook.com/tools/access_token/' target='_blank'>https://developers.facebook.com/tools/access_token/</a><br>";
+var_dump($access_token);
+
+/*---------- ACCESS TOKEN DISPLAY END ------------*/ 
+
+
+
+/*----------FACEBOOK GET USER OBJECT DISPLAY START ------------*/ 
+$user = $facebook->getUser();
 echo "<h3>user</h3>";
 print_r($user);
+/*----------FACEBOOK GET USER OBJECT DISPLAY END ------------*/ 
+
 
 if (!empty($user)) {
 	
@@ -106,7 +112,7 @@ if (!empty($user)) {
 	 
 	}
 	echo "</ul>";
-	$fanpage_token = 'AAAGMjThQ5NYBANm5cLVfoDswfm9L3Nh47IrI9tRQjYwMZB8ZCvOET57U5rcjazn2LElb4f4RUOqlg0jPpi9JZAhZCLqz3yZBZAPcUXL3WUsix1JbShA6aW2CnrXGMyHv4ZD';
+	$fanpage_token = 'AAADmSbR3084BAPxaG8SD3wE718ke0R9b5dVJoFBI8vuwFvKnNGhtuWZB4h2ZAhxirvM5rBb3gcuQ3JYrOxhZAwufHU8vijJn3MRsuKpbL6yRUZAl9PbZA6alsZBAXffMoZD';
 	 
 	// Get all albums from the page
 	 
@@ -137,7 +143,6 @@ if (!empty($user)) {
 	echo "</ul>";
 	
 	
-	$album_id = '472992669421000'; // Get the first one. Shouldn't be empty!
 	
 	
 	echo "<h3>album_id  </h3><a href='http://www.facebook.com/media/set/?set=a.472992669421000.1073741825.183866985000238&type=3'>http://www.facebook.com/media/set/?set=a.472992669421000.1073741825.183866985000238&type=3</a><br>";
@@ -150,7 +155,7 @@ if (!empty($user)) {
 	$args = array(
 	 
 			'message' => 'Von das scheirber.',
-			'image' => '@MikeBastarache-Thumd.jpg',
+			'image' => '@'.realpath('MikeBastarache-Thumd.jpg'),
 			'aid' => $album_id,
 			'no_story' => 1, // Nicht auf der Wall anzeigen (Thank God for that),
 			'access_token' => $fanpage_token // note, we use the page token here
@@ -172,5 +177,24 @@ if (!empty($user)) {
 			echo 'Photo uploaded. Check it on Graph API Explorer. Photo ID: ' . $photo['id'];	
 
 
+}
+
+
+function get_signed_request()
+{
+    $signed_request = NULL;
+
+	if (isset($_REQUEST["signed_request"]))
+	{
+		list($encoded_sig, $payload) = explode(".", $_REQUEST["signed_request"], 2);
+		$sig                         = base64_decode(strtr($encoded_sig, "-_", "+/"));
+		$signed_request              = json_decode(base64_decode(strtr($payload, "-_", "+/"), TRUE), TRUE);
+	}
+	else
+	{
+		error();
+	}
+	
+    return $signed_request;
 }
 ?>
