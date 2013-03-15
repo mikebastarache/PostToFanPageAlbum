@@ -7,16 +7,16 @@ include_once "src/facebook.php";
 
 $app_id = "253204234752974";
 $app_secret = "9b12db97de75600be77e679e5d7ef7a6";
-$canvas_page = "https://royalepromotions.ca/facebook/imageupload/index.php";
+$canvas_page = "https://royalepromotions.ca/facebook/imageupload/";
 $album_id = '472992669421000'; // Get the first one. Shouldn't be empty!
-
+$fanpage = '237445739630557';
+$fanpage2 = '183866985000238';
 
 $facebook = new Facebook(array(
   'appId'  => $app_id,
   'secret' => $app_secret,
   'fileUpload' => true
 ));
-
 
 
 /*---------- SEND BACK TO APP START ------------*/ 
@@ -28,8 +28,9 @@ if (isset($_REQUEST["code"]))
 /*---------- SEND BACK TO APP END ------------*/ 
 
 /*---------- AUTHENTICATE APP START ------------*/ 
-$auth_url = "http://www.facebook.com/dialog/oauth?client_id=" 
-	. $app_id . "&redirect_uri=" . urlencode($canvas_page) .  "&scope=manage_pages";
+//$auth_url = "http://www.facebook.com/dialog/oauth?client_id=" . $app_id . "&redirect_uri=" . urlencode($canvas_page) .  "&scope=manage_pages";
+$auth_url = "http://www.facebook.com/dialog/oauth?client_id=" . $app_id . "&redirect_uri=" . urlencode($canvas_page);
+
 
 $signed_request = $_REQUEST["signed_request"];
 list($encoded_sig, $payload) = explode('.', $signed_request, 2); 
@@ -40,9 +41,6 @@ if (empty($data["user_id"])) {
 	exit;
 }
 /*---------- AUTHENTICATE APP END ------------*/ 
-
-
-
 
 
 echo "<h3>Signed Request</h3>";
@@ -56,16 +54,50 @@ echo "<br>";
 /*----------FACEBOOK OBJECT DISPLAY END ------------*/ 
 
 
+//CLEAR SESSION
+//$_SESSION['access_token'] = "";
+$_SESSION['access_token'] = "AAADmSbR3084BAP7188AtUivXsdlPdLazmugaJeeVvvAKyvn3Xl1M8DE1Iu8j7hVHQWZBVxz67Ac6FYqDzV6pS7BaF2s6ODTkpPU1jzQZDZD";
 
+if($_SESSION['access_token'] == "" || $_SESSION['access_token'] == false){
+	/*---------- ACCESS TOKEN DISPLAY START ------------*/ 
+	$short_access_token = $facebook->getAccessToken();
+	//$access_token = "AAADmSbR3084BABGI5w6eq8GlUsXcIe8OmyZCYPZBs5xpt2Afhl6RO346wRVDwwlACQUZBEqN6VeZC7vxDcYxIUKJXafNF1sG99LAKsMKmAZDZD&expires=5183968";
+	
+	//https://developers.facebook.com/tools/access_token/
+	
+	$long_access_token_auth = "https://graph.facebook.com/oauth/access_token?client_id=".$app_id."&client_secret=".$app_secret."&grant_type=fb_exchange_token&fb_exchange_token=".$short_access_token;
+	$long_access_token = getSslPage($long_access_token_auth);
+	
+	echo "<h3>Short Access token</h3>";
+	var_dump($short_access_token);
+	
+	
+	echo "<h3>Long Access token URL Request</h3>";
+	var_dump($long_access_token_auth);
+	echo "<br>";
+	var_dump($long_access_token);
+	
+	$tokenLen = strlen($long_access_token);
+	$tokenDatePos = strrpos($long_access_token, "&expires");
+	$tokenStartPos = strrpos($long_access_token, "access_token=") +13;
+	$tokenEndPos = $tokenLen - $tokenDatePos;
+	
+	echo "tokenLen = " . $tokenLen . "<br>";
+	echo "tokenDatePos = " . $tokenDatePos . "<br>";
+	echo "tokenStartPos = " . $tokenStartPos . "<br>";
+	echo "tokenEndPos = " . $tokenEndPos . "<br>";
+	
+	if($tokenDatePos!=""){
+		$_SESSION['access_token'] =  substr($long_access_token, $tokenStartPos, "-".$tokenEndPos);
+	} else {
+		$_SESSION['access_token'] =  substr($long_access_token, $tokenStartPos, $tokenLen);
+	}
+	/*---------- ACCESS TOKEN DISPLAY END ------------*/ 
+} 
 
-/*---------- ACCESS TOKEN DISPLAY START ------------*/ 
-$access_token = $facebook->getAccessToken();
-
-echo "<h3>Access token</h3><a href='https://developers.facebook.com/tools/access_token/' target='_blank'>https://developers.facebook.com/tools/access_token/</a><br>";
-var_dump($access_token);
-
-/*---------- ACCESS TOKEN DISPLAY END ------------*/ 
-
+$long_access_token = $_SESSION['access_token'];
+echo "<h3>Long Access token</h3>";
+var_dump($long_access_token);
 
 
 /*----------FACEBOOK GET USER OBJECT DISPLAY START ------------*/ 
@@ -77,18 +109,12 @@ print_r($user);
 
 if (!empty($user)) {
 	
-	//https://developers.facebook.com/tools/access_token/
-	//$access_token = 'AAADmSbR3084BAMTu9ZC3y8ZBQZAcVpkbLiNTOyaZAaSq84xsMmqJSSsOZAe5ouGhV7iyiBaFByJoiGvsudX590htp9ZCnnbLoCRpZBk8643HNWjk1N01g1i';
 
 	$params = array(
-		'access_token' => $access_token
+		'access_token' => $long_access_token
 	);
 	 
-	//https://www.facebook.com/pages/edit/?id=183866985000238&sk=basic
-	$fanpage = '237445739630557';
 	 
-	 
-	
 	echo "<h3>Fanpage ID</h3><a href='http://www.facebook.com/mmdevel/'>http://www.facebook.com/mmdevel/</a><br>";
 	var_dump($fanpage);
 	
@@ -106,18 +132,15 @@ if (!empty($user)) {
 	 
 			echo "<li>". var_dump($account) . "</li>";
 			
-			if( $account['id'] == $fanpage || $account['name'] == $fanpage )
+			if( $account['id'] == $fanpage2 || $account['name'] == $fanpage2 )
 	 
 					$fanpage_token = $account['access_token'];
 	 
 	}
 	echo "</ul>";
-	$fanpage_token = 'AAADmSbR3084BAPxaG8SD3wE718ke0R9b5dVJoFBI8vuwFvKnNGhtuWZB4h2ZAhxirvM5rBb3gcuQ3JYrOxhZAwufHU8vijJn3MRsuKpbL6yRUZAl9PbZA6alsZBAXffMoZD';
-	 
+	
 	// Get all albums from the page
-	 
 	// Must use app access token, not page token!
-	 
 	// You can also use a static album id to test
 	 
 	$fanpage_albums = $facebook->api($fanpage . '/albums', 'GET', $params);
@@ -155,7 +178,7 @@ if (!empty($user)) {
 	$args = array(
 	 
 			'message' => 'Von das scheirber.',
-			'image' => '@'.realpath('MikeBastarache-Thumd.jpg'),
+			'image' => '@'.realpath('cupping.jpg'),
 			'aid' => $album_id,
 			'no_story' => 1, // Nicht auf der Wall anzeigen (Thank God for that),
 			'access_token' => $fanpage_token // note, we use the page token here
@@ -180,21 +203,30 @@ if (!empty($user)) {
 }
 
 
+function getSslPage($url) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+    curl_setopt($ch, CURLOPT_HEADER, false);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_REFERER, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    return $result;
+}
+
+
+
 function get_signed_request()
 {
     $signed_request = NULL;
-
 	if (isset($_REQUEST["signed_request"]))
 	{
 		list($encoded_sig, $payload) = explode(".", $_REQUEST["signed_request"], 2);
 		$sig                         = base64_decode(strtr($encoded_sig, "-_", "+/"));
 		$signed_request              = json_decode(base64_decode(strtr($payload, "-_", "+/"), TRUE), TRUE);
 	}
-	else
-	{
-		error();
-	}
-	
     return $signed_request;
 }
 ?>
